@@ -23,7 +23,7 @@ function wrapper(plugin_info) {
 
     // Constants
     window.plugin.portalDataSender = {
-        "SERVER_URL": "https://127.0.0.1:8080/portal",
+        "SERVER_URL": "https://127.0.0.1:8443/api/portal",
         "PULL_SIZE": 1000,
         "ENABLE_ASYNC": true,
         "data": {}
@@ -55,6 +55,7 @@ function wrapper(plugin_info) {
      * IITCのmapDataRefreshEndフック
      */
     window.plugin.portalDataSender.onMapDataRefreshEnd = function () {
+        console.info('PortalDataSender: onMapDataRefreshEnd');
         window.plugin.portalDataSender.executeRequest();
     };
 
@@ -62,28 +63,33 @@ function wrapper(plugin_info) {
      * データ送信部分
      */
     window.plugin.portalDataSender.executeRequest = function () {
+        console.info('PortalDataSender: executeRequest');
+
         var data = window.plugin.portalDataSender.data;
 
         // Reset data
-        window.plugin.portalDataSender = {};
+        window.plugin.portalDataSender.data = {};
 
-        var list = [];
+        if (data == null || data.length == 0)
+            return;
+
+        var contents = {
+            "portals": []
+        };
         for (var key in data) {
             if (data.hasOwnProperty(key))
-                list.push(data[key]);
+                contents.portals.push(data[key]);
         }
+
+        console.info('PortalDataSender: executeRequest: list size is ' + contents.portals.length);
 
         var request = new XMLHttpRequest();
         request.open('POST', window.plugin.portalDataSender.SERVER_URL, window.plugin.portalDataSender.ENABLE_ASYNC);
-
-        var form = new FormData();
-        form.append('data', JSON.stringify({"portals": list}));
-
-        request.send(form);
+        request.setRequestHeader('Content-Type', 'application/json');
+        request.send(JSON.stringify(contents));
     };
 
     var setup = function () {
-        alert('setup');
         window.addHook('portalAdded', window.plugin.portalDataSender.onPortalAdded);
         window.addHook('mapDataRefreshEnd', window.plugin.portalDataSender.onMapDataRefreshEnd);
     };
